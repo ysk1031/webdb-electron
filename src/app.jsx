@@ -8,7 +8,10 @@ import ReactDOM from 'react-dom';
 class App extends React.Component {
   constructor(props) {
     super(props);
-    this.watcher = chokidar.watch("./README.md");
+
+    this.currentTarget = null;
+
+    this.watcher = chokidar.watch();
     this.state = { markdown: "" };
   }
   componentDidMount() {
@@ -21,11 +24,51 @@ class App extends React.Component {
       this.setState({ markdown: content });
     });
   }
+  handleFileDrop(path) {
+    this.changeWatchTarget(path);
+  }
+  changeWatchTarget(path) {
+    this.watcher.unwatch(this.currentTarget);
+    this.watcher.add(path);
+    this.currentTarget = path;
+  }
   render() {
     const html = markdown.toHTML(this.state.markdown);
-    return <div dangerouslySetInnerHTML={{ __html:html }} />;
+    return (
+      <div>
+        <Holder onFileDrop={this.handleFileDrop.bind(this)} />
+        <div dangerouslySetInnerHTML={{__html: html}} />
+      </div>
+    );
   }
 }
+
+class Holder extends React.Component {
+  handleDragOver(e) {
+    e.preventDefault();
+  }
+  handleDrop(e) {
+    e.preventDefault();
+
+    let file = e.dataTransfer.files[0];
+    this.props.onFileDrop(file.path);
+  }
+  render() {
+    let style = {
+      position: 'absolute',
+      width: window.innerWidth,
+      height: window.innerHeight
+    };
+    return (
+      <div id="holder" style={style} onDragOver={this.handleDragOver.bind(this)}
+        onDrop={this.handleDrop.bind(this)} />
+    );
+  }
+}
+
+Holder.propTypes = {
+  onFileDrop: React.PropTypes.func.isRequired
+};
 
 ReactDOM.render(
   <App />,
